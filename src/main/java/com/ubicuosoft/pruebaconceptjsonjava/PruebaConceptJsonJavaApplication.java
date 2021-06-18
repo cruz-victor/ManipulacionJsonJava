@@ -36,13 +36,17 @@ public class PruebaConceptJsonJavaApplication {
         return null;
     }
 
+    //Consulta de rutas
+    //Keywords: readTree, JsonPointer
     void pathQueries() throws JsonProcessingException {
         ObjectMapper objectMapper=new ObjectMapper();
         JsonNode node= objectMapper.readTree(SourceData.asString());
-        JsonPointer pointer=JsonPointer.compile("/element_count");
-        System.out.println("NEO count:"+ node.at(pointer));
+        JsonPointer pointer=JsonPointer.compile("/near_earth_objects");
+        System.out.println("NEO pointer:"+ node.at(pointer));
     }
 
+    //Enlace de datos
+    //Keywords: readValue, pojos, stream
     void dataBinding() throws JsonProcessingException {
         NeoWsData  neoWsData=new ObjectMapper()
                 .registerModule(new JavaTimeModule())
@@ -56,7 +60,7 @@ public class PruebaConceptJsonJavaApplication {
                 .stream()
                  //Convierte una coleccion de colecciones de objetos en un stream
                  //Aplana y Obtiene un Objeto de stream
-                        .flatMap(Collection::stream)
+                .flatMap(Collection::stream)
                 .filter(neo->neo.isPotentiallyHazardousAsteroid)
                 .count());
 
@@ -70,19 +74,54 @@ public class PruebaConceptJsonJavaApplication {
                 fastestNeo.name, fastestNeo.closeApproachData.get(0).relativeVelocity.kilometersPerSecond));
     }
 
+    //Modelo de arbol
+    //Keywords: readTree, JsonNode.path, JsonNode.get,
     void treeModel() throws JsonProcessingException {
         ObjectMapper mapper=new ObjectMapper();
         JsonNode neoJsonNode=mapper.readTree(SourceData.asString());
-//        System.out.println(neoJsonNode);
-//        System.out.println("-------Total de asteroides-------");
-//        System.out.println(getNeoCount(neoJsonNode));
-//
-//        System.out.println("-------Total de objetos cerca de la tierra-------");
-//        System.out.println(getPotentiallyHazardousAsteroidCount(neoJsonNode));
-//
-//        System.out.println("-------Cual es el nombre y la velocidad del Neo mas rapido-------");
-//        System.out.println(getFastedNeo(neoJsonNode));
+        System.out.println(neoJsonNode);
+        System.out.println("-------Total de asteroides-------");
+        System.out.println(getNeoCount(neoJsonNode));
+
+        System.out.println("-------Total de objetos cerca de la tierra-------");
+        System.out.println(getPotentiallyHazardousAsteroidCount(neoJsonNode));
+
+        System.out.println("-------Cual es el nombre y la velocidad del Neo mas rapido-------");
+        System.out.println(getFastedNeo(neoJsonNode));
     }
+
+    //Modelo de arbol
+    //Keywords: readTree, JsonNode.at, treeToValue
+    void jsonNode() throws JsonProcessingException {
+        String objetoJson="{\"firstName\":\"John\",\"lastName\":\"Doe\",\"address\":{\"street\":\"21 2nd Street\",\"city\":\"New York\",\"postalCode\":\"10021-3100\",\"coordinates\":{\"latitude\":40.7250387,\"longitude\":-73.9932568}}}";
+        System.out.println(objetoJson);
+
+        ObjectMapper mapper=new ObjectMapper();
+
+        JsonNode nodo=mapper.readTree(objetoJson);
+
+        //-------Obteniendo las coordenadas
+        //Permite acceder a campos desde cualquier lugar
+        JsonNode coordinadasNodo=nodo.at("/address/coordinates");
+
+        Coordinates coordinadas=mapper.treeToValue(coordinadasNodo, Coordinates.class);
+
+        System.out.println(coordinadas);
+
+        //-------Obteniendo el last name
+        JsonNode lastNameNode=nodo.at("/lastName");
+        System.out.println(lastNameNode.toString());
+
+        //-------Obteniendo el address
+        JsonNode addressNode=nodo.at("/address");
+
+        Address direccion=mapper.treeToValue(addressNode, Address.class);
+
+        System.out.println(direccion);
+        System.out.println(direccion.getCoordinates());
+        System.out.println(direccion.getCoordinates().getLatitude());
+    }
+
 
     private NeoNameAndSpeed getFastedNeo(JsonNode neoJsonNode) {
         NeoNameAndSpeed fastestNeo=null;
@@ -127,34 +166,6 @@ public class PruebaConceptJsonJavaApplication {
 
     }
 
-    void jsonNode() throws JsonProcessingException {
-        String objetoJson="{\"firstName\":\"John\",\"lastName\":\"Doe\",\"address\":{\"street\":\"21 2nd Street\",\"city\":\"New York\",\"postalCode\":\"10021-3100\",\"coordinates\":{\"latitude\":40.7250387,\"longitude\":-73.9932568}}}";
-        System.out.println(objetoJson);
-
-        ObjectMapper mapper=new ObjectMapper();
-
-        JsonNode nodo=mapper.readTree(objetoJson);
-
-        //-------Obteniendo las coordenadas
-        JsonNode coordinadasNodo=nodo.at("/address/coordinates");
-
-        Coordinates coordinadas=mapper.treeToValue(coordinadasNodo, Coordinates.class);
-
-        System.out.println(coordinadas);
-
-        //-------Obteniendo el last name
-        JsonNode lastNameNode=nodo.at("/lastName");
-        System.out.println(lastNameNode.toString());
-
-        //-------Obteniendo el address
-        JsonNode addressNode=nodo.at("/address");
-
-        Address direccion=mapper.treeToValue(addressNode, Address.class);
-
-        System.out.println(direccion);
-        System.out.println(direccion.getCoordinates());
-        System.out.println(direccion.getCoordinates().getLatitude());
-    }
 
 
 }
