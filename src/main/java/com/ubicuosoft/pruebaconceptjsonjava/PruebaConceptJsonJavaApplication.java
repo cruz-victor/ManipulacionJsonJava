@@ -1,8 +1,10 @@
 package com.ubicuosoft.pruebaconceptjsonjava;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,9 +12,13 @@ import org.springframework.context.annotation.Bean;
 import pojos.Address;
 import pojos.Coordinates;
 import pojos.NeoNameAndSpeed;
+import pojos.neo.NeoDetails;
+import pojos.neo.NeoWsData;
 import sourceData.SourceData;
 
 import javax.sound.midi.MidiFileFormat;
+import java.util.Collection;
+import java.util.Comparator;
 
 @SpringBootApplication
 public class PruebaConceptJsonJavaApplication {
@@ -24,23 +30,58 @@ public class PruebaConceptJsonJavaApplication {
     @Bean
     CommandLineRunner runner() throws JsonProcessingException {
         // jsonNode();
-        treeModel();
+        //treeModel();
+        //dataBinding();
+        pathQueries();
         return null;
+    }
+
+    void pathQueries() throws JsonProcessingException {
+        ObjectMapper objectMapper=new ObjectMapper();
+        JsonNode node= objectMapper.readTree(SourceData.asString());
+        JsonPointer pointer=JsonPointer.compile("/element_count");
+        System.out.println("NEO count:"+ node.at(pointer));
+    }
+
+    void dataBinding() throws JsonProcessingException {
+        NeoWsData  neoWsData=new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .readValue(SourceData.asString(), NeoWsData.class);
+
+        System.out.println("--- NEO count: "+ neoWsData.elementCount);
+
+        System.out.println("--- Asteriodes potencialmente peligrosos: "+
+                neoWsData.nearEarthObjects.values()
+                //Obtiene un Stream<List<Objeto>>
+                .stream()
+                 //Convierte una coleccion de colecciones de objetos en un stream
+                 //Aplana y Obtiene un Objeto de stream
+                        .flatMap(Collection::stream)
+                .filter(neo->neo.isPotentiallyHazardousAsteroid)
+                .count());
+
+        NeoDetails fastestNeo=neoWsData.nearEarthObjects.values()
+                .stream()
+                .flatMap(Collection::stream)
+                .max(Comparator.comparing(neo->neo.closeApproachData.get(0).relativeVelocity.kilometersPerSecond))
+                .get();
+
+        System.out.println(String.format("--- Fastest NEO is: %s at %f km/sec",
+                fastestNeo.name, fastestNeo.closeApproachData.get(0).relativeVelocity.kilometersPerSecond));
     }
 
     void treeModel() throws JsonProcessingException {
         ObjectMapper mapper=new ObjectMapper();
         JsonNode neoJsonNode=mapper.readTree(SourceData.asString());
-        //System.out.println(neoJsonNode);
-        System.out.println("-------Total de asteroides-------");
-        System.out.println(getNeoCount(neoJsonNode));
-
-        System.out.println("-------Total de objetos cerca de la tierra-------");
-        System.out.println(getPotentiallyHazardousAsteroidCount(neoJsonNode));
-
-        System.out.println("-------Cual es el nombre y la velocidad del Neo mas rapido-------");
-        System.out.println(getFastedNeo(neoJsonNode));
-
+//        System.out.println(neoJsonNode);
+//        System.out.println("-------Total de asteroides-------");
+//        System.out.println(getNeoCount(neoJsonNode));
+//
+//        System.out.println("-------Total de objetos cerca de la tierra-------");
+//        System.out.println(getPotentiallyHazardousAsteroidCount(neoJsonNode));
+//
+//        System.out.println("-------Cual es el nombre y la velocidad del Neo mas rapido-------");
+//        System.out.println(getFastedNeo(neoJsonNode));
     }
 
     private NeoNameAndSpeed getFastedNeo(JsonNode neoJsonNode) {
@@ -86,10 +127,6 @@ public class PruebaConceptJsonJavaApplication {
 
     }
 
-    void dataBinding(){}
-
-    void pathQueries(){}
-
     void jsonNode() throws JsonProcessingException {
         String objetoJson="{\"firstName\":\"John\",\"lastName\":\"Doe\",\"address\":{\"street\":\"21 2nd Street\",\"city\":\"New York\",\"postalCode\":\"10021-3100\",\"coordinates\":{\"latitude\":40.7250387,\"longitude\":-73.9932568}}}";
         System.out.println(objetoJson);
@@ -118,5 +155,6 @@ public class PruebaConceptJsonJavaApplication {
         System.out.println(direccion.getCoordinates());
         System.out.println(direccion.getCoordinates().getLatitude());
     }
+
 
 }
